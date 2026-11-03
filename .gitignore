@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Safe template is versioned; real environments and local evidence remain private.
+!.env.example
+.local/
+*.key
+*.p12
+*.pfx
