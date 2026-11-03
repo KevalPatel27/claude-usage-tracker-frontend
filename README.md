@@ -73,3 +73,9 @@ MongoDB remains backend-only. The dashboard can be closed while PCs report. Free
 Vector masters and reusable wordmark assets are in `public/brand`. Icons and Open Graph/Twitter images use Next metadata file conventions in `app`. Run `node scripts/generate-brand.mjs` after editing the vector masters, then rebuild. The app manifest supplies home-screen icons and theme metadata; it does not enable offline telemetry.
 
 Windows setup preservation tests: `pwsh -File scripts/test-setup.ps1` (or Windows PowerShell). This uses isolated files under ignored `.local/setup-tests`, never your live Claude settings.
+
+## Browser keep-alive and connection status
+
+Every authenticated dashboard page mounts one backend health monitor. It requests `/api/backend-health` immediately and every five minutes after a completed check; Next rewrites that to BACKEND_URL/health. Responses and fetches bypass caching; the request sends no credentials or device key. The top bar shows checking/connected/unavailable/offline and lets you retry. Returning to a visible tab or reconnecting the network triggers another check. A 75-second timeout prevents hanging requests; failures retry after 30 seconds up to three times, then return to five-minute intervals. Logout removes the timer and aborts pending requests.
+
+This is best effort while the browser tab runs. Closing the browser, PC sleep and tab suspension stop reliable pings. A stopped backend cannot run a self-ping to wake itself. Incoming telemetry also counts as traffic. Render can still restart/suspend a free instance or hit its usage limits; the feature does not provide lossless telemetry or 24/7 availability. Real deployed Render cold-start recovery has not been verified; local browser tests simulated failures/timeouts and verified scheduling, backoff, recovery and cleanup. Changing the proxy backend origin still requires a frontend rebuild.
