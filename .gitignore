@@ -46,3 +46,7 @@ next-env.d.ts
 *.key
 *.p12
 *.pfx
+
+# Python setup test/cache output
+__pycache__/
+*.py[cod]
