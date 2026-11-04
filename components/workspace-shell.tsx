@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Activity, Users, Plug, Settings, LogOut, ChevronRight, ShieldCheck, PanelLeftClose, PanelLeftOpen, Menu, X } from 'lucide-react';
+import { Activity, Users, Plug, Settings, LogOut, ChevronRight, ShieldCheck, PanelLeftClose, PanelLeftOpen, Menu, X, MessageSquareText } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useCollapsedNavigation } from '@/lib/navigation-preference';
 import { apiFetch } from '@/lib/api';
@@ -11,6 +11,7 @@ import { BackendConnection } from './backend-connection';
 
 const destinations = [
   ['/overview', 'Usage', 'Tokens, trends and sessions', Activity],
+  ['/sessions', 'Sessions & prompts', 'Inputs, projects and turn activity', MessageSquareText],
   ['/people', 'People & devices', 'Assignments and reporting keys', Users],
   ['/connect', 'Connect a PC', 'Set up Windows, Mac or Linux', Plug],
   ['/admin', 'Administration', 'Reporting and data settings', Settings],
@@ -43,7 +44,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   }, [mobileOpen]);
 
   if (isLoading || !isAuthenticated) return <main className="center" role="status">Checking admin session…</main>;
-  const active = (href: string) => path === href || (href === '/people' && (path.startsWith('/people/') || path.startsWith('/devices/')));
+  const active = (href: string) => path === href || (href === '/sessions' && path.startsWith('/sessions/')) || (href === '/people' && (path.startsWith('/people/') || path.startsWith('/devices/')));
   const current = path.startsWith('/devices/') ? 'Device details' : path.startsWith('/people/') ? 'Person details' : destinations.find(([href]) => active(href))?.[1] ?? 'Workspace';
   const close = () => drawer.current?.close();
   async function signOut() {

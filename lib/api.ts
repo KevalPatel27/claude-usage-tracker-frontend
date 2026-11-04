@@ -185,10 +185,10 @@ export const devicesApi = {
 
   get: (id: string) => apiFetch<Device>(`/devices/${id}`),
 
-  create: (name: string, personId?: string) =>
+  create: (name: string, personId?: string, promptCollectionEnabled = false) =>
     apiFetch<{ device: Device; rawKey: string; warning: string }>('/devices', {
       method: 'POST',
-      body: JSON.stringify({ name, personId }),
+      body: JSON.stringify({ name, personId, promptCollectionEnabled }),
     }),
 
   rename: (id: string, name: string) =>

@@ -10,7 +10,7 @@ A responsive Next.js / React / TypeScript dashboard for Claude Code usage across
 - Guided Windows onboarding with a downloadable PowerShell script, configuration backups/removal and real-report verification.
 - Original Usage ledger branding, favicon, mobile icons and share-preview artwork. Keyboard and mobile states are supported.
 
-Device attribution does not prove who used a shared PC. API-equivalent estimates are separate from Max subscription billing and do not measure remaining allowance. No prompts/transcripts are collected by this dashboard.
+Device attribution does not prove who used a shared PC. API-equivalent estimates are separate from Max subscription billing and do not measure remaining allowance. Captured-input history is optional per device and shown only to authenticated admins. Automated notifications may appear; an entry does not prove a human typed it. Assistant-response fields, tool-output fields and transcript files are not read.
 
 ## Local development
 
@@ -91,3 +91,9 @@ See [loading and recovery](docs/LOADING-AND-RECOVERY.md) for accessible skeleton
 ### Navigation and next milestones
 
 The sidebar supports a saved compact desktop rail and a modal mobile drawer, with keyboard labels and native focus handling. `scripts/check-navigation.cjs` verifies persistence, responsive behavior and restricted browser storage using localhost QA credentials. See [product direction](docs/PRODUCT-DIRECTION.md) for the theme and prioritized session/project/activity roadmap.
+
+## Captured-input history (2.0 setup)
+
+Sessions & prompts adds activity/length/duration charts, readable per-session inputs, project tags, input CSV and permanent deletion. Input cache reuse is shown alongside session usage; token/cost totals remain session-level. See [the setup and verification guide](docs/PROMPT-HISTORY.md). Existing metrics-only PCs remain compatible; one optional history add-on run is needed on each device that opts in. No frontend environment changes are needed.
+
+Checks: `npm run lint`, `npm run build`, `python scripts/test_history_client.py`, `node scripts/check-history-ui.cjs` (requires local browser runtime and private local test login). Regenerate the standalone download with `node scripts/generate-history-setup.mjs` after editing its template/client. Never edit generated setup-history.py alone.
