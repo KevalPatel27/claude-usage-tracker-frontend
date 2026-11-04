@@ -1,4 +1,5 @@
 "use client";
+import { TeamSetupInstructions } from './team-setup-instructions';
 import { LoadingState } from './loading-state';
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -6,7 +7,7 @@ import { Monitor, UserRound, KeyRound, Download, ArrowRight, Check, CheckCircle2
 import { apiFetch, peopleApi, devicesApi, type Person, type Device } from '@/lib/api';
 import { Heading, ErrorBox } from './shared';
 type Registered = { id:string; name:string; personName:string; key:string };
-export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='', initialHistory=false }:{backendUrl?:string;initialDeviceId?:string;initialPersonId?:string;initialHistory?:boolean}) {
+export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='', initialHistory=false, publicSiteUrl='' }:{backendUrl?:string;initialDeviceId?:string;initialPersonId?:string;initialHistory?:boolean;publicSiteUrl?:string}) {
  const [attempt,setAttempt]=useState(0),[loaded,setLoaded]=useState(false);
  const [history,setHistory]=useState(initialHistory);
  const [platform,setPlatform]=useState<'windows'|'macos'|'linux'>('windows');
@@ -30,8 +31,8 @@ export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='',
  const removeCommand=platform==='windows'?String.raw`.\setup-pc.ps1 -Remove`:`bash "./${file}" --remove`;
  const historyCommand=`${platform==='windows'?'python':'python3'} "./setup-history.py" --backend-url "${backendUrl||'https://YOUR-BACKEND.onrender.com'}" --device-id "${device?.id??'DEVICE-ID'}"`;
  const stages=[{title:'Register the device',description:'Choose a person and a friendly name',icon:Monitor},{title:'Apply the settings',description:'Apply its key on your '+platformName+' device',icon:KeyRound},{title:'Verify a real report',description:'Start Code and confirm usage arrives',icon:Radio}];
- return <><Heading title="Connect a PC" description="A separate device key keeps each PC’s usage easy to identify."/>
- <div className="connection-layout"><aside className="connection-rail"><ol aria-label="Connection steps">{stages.map((s,i)=><li key={s.title} aria-current={step===i+1?'step':undefined} className={step>i+1?'complete':''}><span className="step-marker">{step>i+1?<Check size={16}/>:i+1}</span><div><strong>{s.title}</strong><small>{s.description}</small></div></li>)}</ol><div className="connection-rail-note"><ShieldCheck size={18}/><p>{history?'Usage and opted-in prompts.':'Only usage metrics.'}<small>Claude requests continue directly to Anthropic.</small></p></div></aside>
+ return <><Heading title="Connect a PC" description="A separate device key keeps each PC’s usage easy to identify."><a className="button" href="#team-instructions"><Copy size={15}/>Team instructions</a></Heading>
+ <div id="device-connection" className="connection-layout"><aside className="connection-rail"><ol aria-label="Connection steps">{stages.map((s,i)=><li key={s.title} aria-current={step===i+1?'step':undefined} className={step>i+1?'complete':''}><span className="step-marker">{step>i+1?<Check size={16}/>:i+1}</span><div><strong>{s.title}</strong><small>{s.description}</small></div></li>)}</ol><div className="connection-rail-note"><ShieldCheck size={18}/><p>{history?'Usage and opted-in prompts.':'Only usage metrics.'}<small>Claude requests continue directly to Anthropic.</small></p></div></aside>
  <section className="connection-card" aria-label={'Step '+step+': '+stages[step-1].title}>
   <div className="connection-card-header"><span className="connection-symbol">{step===1?<Monitor size={23}/>:step===2?<KeyRound size={23}/>:<Radio size={23}/>}</span><div><small>Step {step} of 3</small><h2>{step===1?'Give this PC a place in your workspace':step===2?'Set up '+device?.name:'Confirm that usage is arriving'}</h2></div></div>
   <label className="platform-picker">Device operating system<select aria-label="Device operating system" value={platform} onChange={e=>{setPlatform(e.target.value as 'windows'|'macos'|'linux');setSaved(false);setCommandCopied(false);}}><option value="windows">Windows</option><option value="macos">macOS</option><option value="linux">Linux</option></select></label>
@@ -65,5 +66,5 @@ export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='',
   </>}
  </section>
  <aside className="connection-help"><h3>A name you’ll recognize</h3><p>“Keval’s laptop”, “Design PC” or “Office PC 2” all work. Matching the computer’s system name is optional.</p><div/><h3>Connecting another PC?</h3><p>Give every Windows, Mac or Linux device its own key. The same person can have more than one device.</p><div/><h3>Local setup</h3><p>127.0.0.1 works only on the PC running this backend. Another PC needs your shared HTTPS backend address.</p><details><summary>Remove tracker settings</summary><pre><code>{removeCommand}</code></pre><p>Then revoke the device key in People & devices. Other Claude settings are preserved.</p></details></aside>
- </div></>;
+ </div><TeamSetupInstructions key={mode} device={device} backendUrl={backendUrl} siteUrl={publicSiteUrl} history={history} existing={mode==='existing'}/></>;
 }

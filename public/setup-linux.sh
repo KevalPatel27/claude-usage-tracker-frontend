@@ -222,6 +222,9 @@ def configure(path, backend=None, key=None, remove=False, dry_run=False):
     print("Exit existing Claude Code sessions. On macOS fully quit Desktop with Cmd+Q; on Linux quit Desktop if installed, then reopen it.")
     print("Start a NEW local Code session (or terminal claude), send a short prompt, wait at least 60 seconds, and use dashboard Verify.")
     print("Health alone does not prove telemetry. Managed/launcher environment can override user settings. Remote/cloud sessions are not configured.")
+    if not remove:
+        print("Updating an existing PC? Keep the same registered device and key. This script does not create a device or rotate its key.")
+        print("If your admin enabled input history, also run the latest setup-history.py using that same device ID. Metrics setup alone does not enable input history.")
     if remove:
         print("Revoke the device key in People & devices to stop reporting authorization.")
 

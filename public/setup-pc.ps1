@@ -115,3 +115,6 @@ Write-Host 'Start a NEW local Desktop Code session. For a reliable first test, c
 Write-Host 'Run a short prompt, wait at least 60 seconds, then use Connect a PC > Check for a usage report.'
 Write-Host 'A backend health response alone does not prove telemetry delivery. Check for environment overrides if reports are missing.'
 Write-Host 'Remote/cloud sessions are not configured. Logs and traces are disabled for this configuration.'
+
+Write-Host 'Updating an existing PC? Keep the same registered device and key. This script does not create a device or rotate its key.'
+Write-Host 'If your admin enabled input history, also run the latest setup-history.py using that same device ID. Metrics setup alone does not enable input history.'
