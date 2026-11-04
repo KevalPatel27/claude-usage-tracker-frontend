@@ -101,3 +101,5 @@ Checks: `npm run lint`, `npm run build`, `python scripts/test_history_client.py`
 ## Send setup instructions to employees
 
 Connect a PC → Team instructions now provides separate Windows, Mac and Linux messages for New installation or Update an existing PC. Select/register the intended device and continue first. Copy the complete plain-text message or download its .txt file; send its private key separately. Existing installations keep the same device ID and key, and an input-history update leaves metrics configuration in place. Generate a separate message per PC. Check the download website/public backend are published and reachable before sending; loopback and temporary tunnel limitations are shown in the UI. Tests: `node scripts/test-team-instructions.cjs` and `node scripts/check-team-instructions.cjs` (local browser fixtures).
+
+Captured-input history is checked by default in Connect a PC; admins can uncheck it before proceeding. `?history=0` opens metrics-only setup. This changes the setup preference only: existing devices and backend defaults are not silently modified.

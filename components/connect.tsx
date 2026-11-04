@@ -7,7 +7,7 @@ import { Monitor, UserRound, KeyRound, Download, ArrowRight, Check, CheckCircle2
 import { apiFetch, peopleApi, devicesApi, type Person, type Device } from '@/lib/api';
 import { Heading, ErrorBox } from './shared';
 type Registered = { id:string; name:string; personName:string; key:string };
-export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='', initialHistory=false, publicSiteUrl='' }:{backendUrl?:string;initialDeviceId?:string;initialPersonId?:string;initialHistory?:boolean;publicSiteUrl?:string}) {
+export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='', initialHistory=true, publicSiteUrl='' }:{backendUrl?:string;initialDeviceId?:string;initialPersonId?:string;initialHistory?:boolean;publicSiteUrl?:string}) {
  const [attempt,setAttempt]=useState(0),[loaded,setLoaded]=useState(false);
  const [history,setHistory]=useState(initialHistory);
  const [platform,setPlatform]=useState<'windows'|'macos'|'linux'>('windows');

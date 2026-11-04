@@ -13,7 +13,11 @@ const root=path.resolve(__dirname,'../..'),out=path.join(root,'.local/team-instr
   if(url.pathname==='/api/devices/'+did+'/prompt-history'){updates++;assert.deepEqual(req.postDataJSON(),{enabled:true});return route.fulfill({json:{}});}
   if(!['GET','HEAD'].includes(req.method()))return route.fulfill({status:409,json:{error:'QA blocks real writes'}});
   return route.continue();});
- await p.goto('http://127.0.0.1:3000/connect?deviceId='+did+'&history=1');
+ await p.goto('http://127.0.0.1:3000/connect?deviceId='+did+'&history=0');
+ assert.equal(await p.getByRole('checkbox',{name:'Include captured-input history on this device',exact:true}).isChecked(),false);
+ await p.goto('http://127.0.0.1:3000/connect?deviceId='+did);
+ const historyChoice=p.getByRole('checkbox',{name:'Include captured-input history on this device',exact:true});
+ assert.equal(await historyChoice.isChecked(),true);await historyChoice.uncheck();assert.equal(await historyChoice.isChecked(),false);await historyChoice.check();
  const section=p.getByRole('region',{name:'Send instructions to your team'});
  await section.waitFor();assert.ok(await section.getByRole('button',{name:'Copy Windows instructions',exact:true}).isDisabled());
  await section.getByLabel('Setup download website',{exact:true}).fill('https://dashboard.example.test');
