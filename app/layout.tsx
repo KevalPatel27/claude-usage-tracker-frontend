@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./workspace-shell.css";
 import { AuthProvider } from "@/lib/auth-context";
 
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: 'Usage ledger', statusBarStyle: 'default' },
   robots: { index: false, follow: false },
 };
-export const viewport: Viewport = { themeColor: '#163447' };
+export const viewport: Viewport = { themeColor: '#122e3f' };
 
 export default function RootLayout({
   children,

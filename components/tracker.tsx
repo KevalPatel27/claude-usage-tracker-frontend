@@ -1,36 +1,11 @@
 "use client";
 import { LoadingState } from './loading-state';
-import { useEffect, useState, type ReactNode } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Activity, Users, Plug, Settings, LogOut, ChevronRight, ShieldCheck } from 'lucide-react';
-import { BackendConnection } from './backend-connection';
-import { BrandMark } from './brand-mark';
+import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { Heading, ErrorBox } from './shared';
 export { Heading, ErrorBox } from './shared';
-import { useAuth } from '@/lib/auth-context';
 const message = (e: unknown) => e instanceof Error ? e.message : 'Request failed. Try again.';
-export function Shell({ children }: { children: ReactNode }) {
-    const { isAuthenticated, isLoading, logout } = useAuth(); const router = useRouter(); const path = usePathname();
- const [dataMode,setDataMode]=useState('collected');
- useEffect(()=>{if(isAuthenticated) apiFetch<{dataMode:string}>('/dashboard/settings').then(s=>setDataMode(s.dataMode)).catch(()=>{});},[isAuthenticated]);
-    useEffect(() => { if (!isLoading && !isAuthenticated) router.replace('/login'); }, [isLoading, isAuthenticated, router]);
-    if (isLoading || !isAuthenticated) return <main className="center" role="status">Checking admin session…</main>;
-    const nav = [['/overview', 'Usage', Activity], ['/people', 'People & devices', Users], ['/connect', 'Connect a PC', Plug], ['/admin', 'Administration', Settings]] as const;
-    const active = (href:string) => path===href || (href==='/people'&&(path.startsWith('/people/')||path.startsWith('/devices/')));
-    const current = nav.find(([href]) => active(href))?.[1] ?? 'Workspace';
-    return <div className="app-shell"><a className="skip" href="#content">Skip to content</a>
-      <aside className="sidebar"><Link href="/overview" className="brand"><span className="brand-icon"><BrandMark size={40}/></span><span>Usage ledger<small>Claude Code workspace</small></span></Link>
-        <nav aria-label="Main navigation">{nav.map(([href,label,Icon])=><Link key={href} href={href} aria-current={active(href)?'page':undefined}><Icon size={19}/><span>{label}</span>{active(href)&&<ChevronRight size={14}/>}</Link>)}</nav>
-        <div className="sidebar-note"><ShieldCheck size={20}/><p>One key for each PC.<small>Usage is attributed to the device’s assigned person.</small></p></div>
-        <div className="sidebar-bottom"><button className="quiet" onClick={()=>void logout().catch(e=>alert(message(e)))}><LogOut size={16}/>Sign out</button></div>
-      </aside>
-      <div className="app-content"><div className="utility-bar"><span>Workspace <ChevronRight size={13}/><strong>{current}</strong></span><BackendConnection/></div>
-        <main id="content" className="workspace">{dataMode==='synthetic'&&<div className="key-notice" role="status">Synthetic verification data — not real collected usage. Separate local QA database.</div>}{children}<footer>Device-attributed usage · API cost estimates are separate from your subscription · No plan-limit enforcement</footer></main>
-      </div>
-    </div>;
-}
+export { WorkspaceShell as Shell } from './workspace-shell';
 export { KeyNotice } from './device-key';
 export { Overview } from './overview';
 export { People } from './people';

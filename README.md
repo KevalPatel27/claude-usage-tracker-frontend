@@ -87,3 +87,7 @@ Connect a PC now has a Windows/macOS/Linux selector. The standalone `public/setu
 ### Loading and recovery
 
 See [loading and recovery](docs/LOADING-AND-RECOVERY.md) for accessible skeletons, filter/result consistency, request timeouts, retry behavior and local browser checks.
+
+### Navigation and next milestones
+
+The sidebar supports a saved compact desktop rail and a modal mobile drawer, with keyboard labels and native focus handling. `scripts/check-navigation.cjs` verifies persistence, responsive behavior and restricted browser storage using localhost QA credentials. See [product direction](docs/PRODUCT-DIRECTION.md) for the theme and prioritized session/project/activity roadmap.
