@@ -8,17 +8,18 @@ const common = { deviceId: '1'.repeat(24), deviceName: 'Synthetic team laptop', 
 for (const platform of ['windows', 'macos', 'linux']) {
   for (const audience of ['new', 'update']) {
     const text = teamSetupMessage({ ...common, platform, audience });
-    assert.ok(text.includes('--device-id "' + common.deviceId + '"'));
-    assert.ok(text.includes('https://dashboard.example.test/setup-history.py'));
-    assert.ok(text.includes('SAME existing device key'));
+    assert.ok(text.includes(platform === 'windows' ? '-DeviceId "' + common.deviceId + '"' : '--device-id "' + common.deviceId + '"'));
+    assert.ok(text.includes('https://dashboard.example.test/'+(platform==='windows'?'setup-pc.ps1':`setup-${platform}.sh`)));
+    assert.equal(text.includes('setup-history.py'),false);
+    if(audience==='update')assert.ok(text.includes('SAME existing device key'));
     assert.ok(text.includes('NEW local Code session'));
     assert.ok(text.includes('60 seconds'));
     assert.ok(text.includes('Automated notifications'));
     assert.equal(text.includes('dkey_'), false);
     assert.equal(text.includes('[https://'), false, 'Commands/links must be plain text');
-    assert.ok(text.includes(platform === 'windows' ? 'python "./setup-history.py"' : 'python3 "./setup-history.py"'));
-    if (audience === 'new') assert.ok(text.includes(platform === 'windows' ? '-ExecutionPolicy Bypass' : `bash "./setup-${platform}.sh"`));
-    else { assert.ok(text.includes('Keep your existing metrics setup')); assert.equal(text.includes('powershell.exe -NoProfile'), false); assert.equal(text.includes('bash "./setup-'), false); }
+    assert.ok(text.includes(platform === 'windows' ? '-ExecutionPolicy Bypass' : `bash "./setup-${platform}.sh"`));
+    assert.ok(text.includes('No second installer is needed'));
+
   }
   const metrics = teamSetupMessage({ ...common, history: false, platform, audience: 'update' });
   assert.ok(metrics.includes('SAME existing device key')); assert.equal(metrics.includes('setup-history.py'), false);

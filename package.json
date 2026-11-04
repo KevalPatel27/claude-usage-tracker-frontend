@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:setup": "node scripts/generate-history-setup.mjs && node scripts/generate-unified-setup.mjs && node scripts/generate-posix-setup.mjs",
+    "prebuild": "npm run generate:setup"
   },
   "dependencies": {
     "clsx": "^2.1.1",

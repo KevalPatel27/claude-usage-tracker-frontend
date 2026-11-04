@@ -7,7 +7,7 @@ function Assert($Condition, [string]$Message) { if (-not $Condition) { throw $Me
 $initial = '{"permissions":{"allow":["Read"]},"env":{"EXISTING":"keep","OTEL_METRICS_EXPORTER":"console"}}'
 [IO.File]::WriteAllText($path,$initial)
 $key = 'dkey_' + ('a' * 64)
-& $script -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path
+& $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path
 $data = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
 Assert ($data.env.EXISTING -eq 'keep') 'Existing env lost'
 Assert ($data.permissions.allow[0] -eq 'Read') 'Existing permissions lost'
@@ -15,7 +15,7 @@ Assert ($data.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE -eq 'cumulat
 Assert ($data.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT -eq 'http://127.0.0.1:4000/v1/metrics') 'Incorrect endpoint'
 Assert ($data.env.OTEL_EXPORTER_OTLP_METRICS_HEADERS -eq "X-Tracker-Key=$key") 'Incorrect header'
 # Reinstall/rotate must still restore original exporter on removal.
-& $script -BackendUrl 'http://127.0.0.1:4000' -TrackerKey ('dkey_' + ('b' * 64)) -SettingsPath $path
+& $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey ('dkey_' + ('b' * 64)) -SettingsPath $path
 & $script -Remove -SettingsPath $path
 $data = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
 Assert ($data.env.OTEL_METRICS_EXPORTER -eq 'console') 'Prior exporter not restored'
@@ -24,20 +24,20 @@ Assert (-not $data.env.PSObject.Properties['OTEL_EXPORTER_OTLP_METRICS_HEADERS']
 # Corrupt settings must remain byte-for-byte unchanged.
 [IO.File]::WriteAllText($path,'{"env":broken')
 $failed = $false
-try { & $script -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path } catch { $failed = $true }
+try { & $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path } catch { $failed = $true }
 Assert $failed 'Corrupt JSON accepted'
 Assert ((Get-Content -LiteralPath $path -Raw) -eq '{"env":broken') 'Corrupt file overwritten'
 [IO.File]::WriteAllText($path,$initial)
-& $script -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path -WhatIf
+& $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path -WhatIf
 Assert ((Get-Content -LiteralPath $path -Raw) -eq $initial) 'WhatIf wrote settings'
 # Markdown URLs must fail clearly without changing configuration.
 $failed = $false
-try { & $script -BackendUrl '[https://example.com](https://example.com)' -TrackerKey $key -SettingsPath $path }
+try { & $script -NoHistory -BackendUrl '[https://example.com](https://example.com)' -TrackerKey $key -SettingsPath $path }
 catch { $failed = $_.Exception.Message -match 'Markdown' }
 Assert $failed 'Markdown URL did not produce a clear plain-URL error'
 Assert ((Get-Content -LiteralPath $path -Raw) -eq $initial) 'Invalid URL changed settings'
 # Later user edits must survive removal.
-& $script -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path
+& $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path
 $data = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
 $data.env.OTEL_METRICS_EXPORTER = 'prometheus'
 $data | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $path -Encoding UTF8

@@ -43,7 +43,7 @@ Open http://localhost:3000. Use the backend bootstrap secret once to create the 
 3. Review it and run the dashboard's copied command on that PC, for example:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\setup-pc.ps1" -BackendUrl "https://YOUR-BACKEND.onrender.com"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\setup-pc.ps1" -BackendUrl "https://YOUR-BACKEND.onrender.com" -DeviceId "COPY_DEVICE_ID_FROM_DASHBOARD"
 ```
 
 4. Enter the device key in its hidden prompt. The script preserves other Claude settings, backs up changes and supports `-Remove`. It does not install Claude Desktop; install/sign in to Claude Desktop separately. Organization-enforced signing policies still apply.
@@ -82,7 +82,7 @@ This is best effort while the browser tab runs. Closing the browser, PC sleep an
 
 ## macOS and Linux onboarding
 
-Connect a PC now has a Windows/macOS/Linux selector. The standalone `public/setup-macos.sh` and `public/setup-linux.sh` downloads require Bash + Python 3.8+, prompt for the key privately and preserve other settings. They use the shared `public/setup-posix.py` engine; regenerate downloads with `node scripts/generate-posix-setup.mjs`. Run without sudo. See [platform setup and verification](docs/SETUP-PLATFORMS.md) for commands, prerequisites, backups/removal, CLI/Desktop limitations and native verification status. Run `python3 scripts/test_setup_posix.py` for isolated preservation tests (Windows developers can use python).
+Connect a PC now has a Windows/macOS/Linux selector. The standalone `public/setup-macos.sh` and `public/setup-linux.sh` downloads require Bash + Python 3.8+, prompt for the key privately and preserve other settings. All OS downloads bundle the unified metrics/history engine; regenerate with `npm run generate:setup` (also runs before builds). Run without sudo. See [platform setup and verification](docs/SETUP-PLATFORMS.md) for commands, prerequisites, backups/removal, CLI/Desktop limitations and native verification status. Run `python3 scripts/test_setup_posix.py` for isolated preservation tests (Windows developers can use python).
 
 ### Loading and recovery
 
@@ -94,12 +94,16 @@ The sidebar supports a saved compact desktop rail and a modal mobile drawer, wit
 
 ## Captured-input history (2.0 setup)
 
-Sessions & prompts adds activity/length/duration charts, readable per-session inputs, project tags, input CSV and permanent deletion. Input cache reuse is shown alongside session usage; token/cost totals remain session-level. See [the setup and verification guide](docs/PROMPT-HISTORY.md). Existing metrics-only PCs remain compatible; one optional history add-on run is needed on each device that opts in. No frontend environment changes are needed.
+Sessions & prompts adds activity/length/duration charts, readable per-session inputs, project tags, input CSV and permanent deletion. Input cache reuse is shown alongside session usage; token/cost totals remain session-level. See [the setup and verification guide](docs/PROMPT-HISTORY.md). Existing metrics-only PCs remain compatible; new and existing PCs run the same single installer once, configuring both features with the same device/key. No frontend environment changes are needed.
 
-Checks: `npm run lint`, `npm run build`, `python scripts/test_history_client.py`, `node scripts/check-history-ui.cjs` (requires local browser runtime and private local test login). Regenerate the standalone download with `node scripts/generate-history-setup.mjs` after editing its template/client. Never edit generated setup-history.py alone.
+Checks: `npm run lint`, `npm run build`, `python scripts/test_history_client.py`, `node scripts/check-history-ui.cjs` (requires local browser runtime and private local test login). Regenerate all standalone installers with `npm run generate:setup` after editing engine templates/client; builds do this automatically. Never edit generated downloads alone.
 
 ## Send setup instructions to employees
 
 Connect a PC → Team instructions now provides separate Windows, Mac and Linux messages for New installation or Update an existing PC. Select/register the intended device and continue first. Copy the complete plain-text message or download its .txt file; send its private key separately. Existing installations keep the same device ID and key, and an input-history update leaves metrics configuration in place. Generate a separate message per PC. Check the download website/public backend are published and reachable before sending; loopback and temporary tunnel limitations are shown in the UI. Tests: `node scripts/test-team-instructions.cjs` and `node scripts/check-team-instructions.cjs` (local browser fixtures).
 
 Captured-input history is checked by default in Connect a PC; admins can uncheck it before proceeding. `?history=0` opens metrics-only setup. This changes the setup preference only: existing devices and backend defaults are not silently modified.
+
+## Unified installer
+
+One file and one command per OS configures metrics plus input history for new and existing PCs. Updates reuse saved keys for the same backend and preserve queue/ownership/settings. All three OS installers require Python 3.8+. Windows uses `-DeviceId`; Mac/Linux use `--device-id`. Metrics-only uses `-NoHistory` / `--no-history`; removal uses `-Remove` / `--remove`. These explicit actions remove owned history hooks and pending inputs, so quit Code before running. Existing keys are never rotated or devices registered by setup. Legacy history-only downloads remain compatible but are no longer part of onboarding.
