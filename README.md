@@ -83,3 +83,7 @@ This is best effort while the browser tab runs. Closing the browser, PC sleep an
 ## macOS and Linux onboarding
 
 Connect a PC now has a Windows/macOS/Linux selector. The standalone `public/setup-macos.sh` and `public/setup-linux.sh` downloads require Bash + Python 3.8+, prompt for the key privately and preserve other settings. They use the shared `public/setup-posix.py` engine; regenerate downloads with `node scripts/generate-posix-setup.mjs`. Run without sudo. See [platform setup and verification](docs/SETUP-PLATFORMS.md) for commands, prerequisites, backups/removal, CLI/Desktop limitations and native verification status. Run `python3 scripts/test_setup_posix.py` for isolated preservation tests (Windows developers can use python).
+
+### Loading and recovery
+
+See [loading and recovery](docs/LOADING-AND-RECOVERY.md) for accessible skeletons, filter/result consistency, request timeouts, retry behavior and local browser checks.

@@ -1,4 +1,5 @@
 "use client";
+import { LoadingState } from './loading-state';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -17,20 +18,23 @@ const errorMessage=(e:unknown)=>e instanceof Error?e.message:'Unable to load usa
 export function Overview() {
   const params=useSearchParams();
   const [filters,setFilters]=useState({from:params.get('from')??'',to:params.get('to')??'',timezone:params.get('timezone')??'UTC',sessionId:params.get('sessionId')??'',personId:params.get('personId')??'',deviceId:params.get('deviceId')??'',model:params.get('model')??''});
+  const [bootstrapAttempt,setBootstrapAttempt]=useState(0);
   const [initialTimezone]=useState(()=>params.get('timezone'));
   const [preset,setPreset]=useState<Preset>(params.has('from')||params.has('to')?'custom':'today');
   const [people,setPeople]=useState<Person[]>([]),[models,setModels]=useState<string[]>([]);
-  const [data,setData]=useState<OverviewData|null>(null),[collection,setCollection]=useState<CollectionStatus|null>(null);
+  const [snapshot,setSnapshot]=useState<{query:string;data:OverviewData}|null>(null),[collection,setCollection]=useState<CollectionStatus|null>(null);
   const [ready,setReady]=useState(false),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState('');
   const active=useRef<AbortController|null>(null);
-  useEffect(()=>{let mounted=true;Promise.all([apiFetch<{reportingTimezone:string}>('/dashboard/settings'),peopleApi.list()]).then(([settings,p])=>{if(mounted){setPeople(p);const zone=initialTimezone??settings.reportingTimezone;setFilters(f=>({...f,timezone:zone,...(!f.from&&!f.to?presetDates('today',zone):{})}));setReady(true);}}).catch(e=>{if(mounted){setError(errorMessage(e));setLoading(false);}});return()=>{mounted=false;};},[initialTimezone]);
+  useEffect(()=>{let mounted=true;Promise.all([apiFetch<{reportingTimezone:string}>('/dashboard/settings'),peopleApi.list()]).then(([settings,p])=>{if(mounted){setPeople(p);const zone=initialTimezone??settings.reportingTimezone;setFilters(f=>({...f,timezone:zone,...(!f.from&&!f.to?presetDates('today',zone):{})}));setReady(true);}}).catch(e=>{if(mounted){setError(errorMessage(e));setLoading(false);}});return()=>{mounted=false;};},[initialTimezone,bootstrapAttempt]);
   const query=new URLSearchParams();Object.entries(filters).forEach(([key,value])=>{if(value)query.set(key,value);});const qs=query.toString();
-  const refresh=useCallback(async()=>{if(!ready)return;active.current?.abort();const controller=new AbortController();active.current=controller;setRefreshing(true);try{
+  const data=snapshot?.query===qs?snapshot.data:null;
+  const refresh=useCallback(async(background=false)=>{if(!ready||(background&&active.current&&!active.current.signal.aborted))return;active.current?.abort();const controller=new AbortController();active.current=controller;setRefreshing(true);try{
     const [usage,status]=await Promise.all([apiFetch<OverviewData>('/dashboard/overview?'+qs,{signal:controller.signal}),apiFetch<CollectionStatus>('/dashboard/collection-status',{signal:controller.signal})]);
-    if(controller.signal.aborted)return;setData(usage);setCollection(status);setModels(existing=>[...new Set([...existing,...usage.byModel.map(r=>r._id.model)])].sort());setError('');
-  }catch(e){if(!controller.signal.aborted)setError(errorMessage(e));}finally{if(!controller.signal.aborted){setRefreshing(false);setLoading(false);}}},[ready,qs]);
-  useEffect(()=>{const first=setTimeout(()=>void refresh(),0);const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh();},30000);const visible=()=>{if(document.visibilityState==='visible')void refresh();};document.addEventListener('visibilitychange',visible);return()=>{clearTimeout(first);clearInterval(timer);active.current?.abort();document.removeEventListener('visibilitychange',visible);};},[refresh]);
+    if(controller.signal.aborted)return;setSnapshot({query:qs,data:usage});setCollection(status);setModels(existing=>[...new Set([...existing,...usage.byModel.map(r=>r._id.model)])].sort());setError('');
+  }catch(e){if(!controller.signal.aborted)setError(errorMessage(e));}finally{if(!controller.signal.aborted){setRefreshing(false);setLoading(false);if(active.current===controller)active.current=null;}}},[ready,qs]);
+  useEffect(()=>{const first=setTimeout(()=>void refresh(),0);const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh(true);},30000);const visible=()=>{if(document.visibilityState==='visible')void refresh(true);};document.addEventListener('visibilitychange',visible);return()=>{clearTimeout(first);clearInterval(timer);active.current?.abort();document.removeEventListener('visibilitychange',visible);};},[refresh]);
   function choosePreset(value:Preset){setPreset(value);if(value!=='custom')setFilters(f=>({...f,...presetDates(value,f.timezone)}));}
+  function retry(){if(ready)void refresh();else{setError('');setLoading(true);setBootstrapAttempt(n=>n+1);}}
   const total=data?.totalsByType.reduce((n,r)=>n+r.total,0)??0;
   const displayZone=data?.period.timezone??filters.timezone;
   const recent=collection?.devices.filter(d=>d.status==='recent').length??0;
@@ -40,7 +44,7 @@ export function Overview() {
   return <>
     <Heading title="Usage overview" description="A clear view of Claude Code usage across your configured PCs.">
       <button onClick={()=>void refresh()} disabled={refreshing||!ready}><RefreshCw size={16} className={refreshing?'refreshing':''}/>{refreshing?'Refreshing…':'Refresh'}</button>
-      <a className="button" href={'/api/dashboard/export.csv?'+qs}><Download size={16}/>Export CSV</a>
+      {data?<a className="button" href={'/api/dashboard/export.csv?'+qs}><Download size={16}/>Export CSV</a>:<button disabled><Download size={16}/>Export CSV</button>}
     </Heading>
     <section className="filter-panel" aria-label="Usage filters">
       <div className="filter-topline"><div className="date-presets" role="group" aria-label="Date range">{([['today','Today'],['7d','Last 7 days'],['30d','Last 30 days'],['custom','Custom']] as const).map(([key,label])=><button key={key} aria-pressed={preset===key} onClick={()=>choosePreset(key)}>{label}</button>)}</div><span className="filter-hint">Times shown in {filters.timezone}</span></div>
@@ -51,8 +55,8 @@ export function Overview() {
         <label>Timezone<select aria-label="Reporting timezone" value={filters.timezone} onChange={e=>{const zone=e.target.value;setFilters(f=>({...f,timezone:zone,...(preset!=='custom'?presetDates(preset,zone):{})}));}}>{[...new Set(['UTC','Asia/Kolkata',...Intl.supportedValuesOf('timeZone')])].map(z=><option key={z}>{z}</option>)}</select></label>
       <label>Session ID<input aria-label="Session ID" maxLength={128} placeholder="All sessions" value={filters.sessionId} onChange={e=>setFilters({...filters,sessionId:e.target.value})}/></label></div>{hasFilters&&<button className="reset-filters" onClick={()=>setFilters({...filters,personId:'',deviceId:'',model:'',sessionId:''})}>Clear person, device, model & session filters</button>}
     </section>
-    {error&&<ErrorBox error={(data?'Refresh failed; the displayed data is stale. ':'')+error}/>}
-    {loading&&<div className="overview-loading" role="status"><span/>Loading recorded usage…</div>}
+    {error&&<ErrorBox error={(data?'Refresh failed; the displayed data is stale. ':'')+error} onRetry={retry}/>}
+    {!data&&(loading||refreshing)&&<LoadingState label="Loading recorded usage…"/>}
     {data&&<>
       <div className="report-strip"><span><CheckCircle2 size={14}/>Updated {timestamp(data.generatedAt,displayZone)}</span><span><Clock3 size={14}/>Last report received: {timestamp(lastReport,displayZone)}</span></div>
       <section className="usage-summary refined-summary" aria-label="Usage totals">

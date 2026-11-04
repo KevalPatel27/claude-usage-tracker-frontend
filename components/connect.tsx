@@ -1,4 +1,5 @@
 "use client";
+import { LoadingState } from './loading-state';
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { Monitor, UserRound, KeyRound, Download, ArrowRight, Check, CheckCircle2, Radio, ShieldCheck, Copy, Eye, EyeOff, Info, RefreshCw } from 'lucide-react';
@@ -6,13 +7,14 @@ import { apiFetch, peopleApi, devicesApi, type Person, type Device } from '@/lib
 import { Heading, ErrorBox } from './shared';
 type Registered = { id:string; name:string; personName:string; key:string };
 export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='' }:{backendUrl?:string;initialDeviceId?:string;initialPersonId?:string}) {
+ const [attempt,setAttempt]=useState(0),[loaded,setLoaded]=useState(false);
  const [platform,setPlatform]=useState<'windows'|'macos'|'linux'>('windows');
  const [people,setPeople]=useState<Person[]>([]),[devices,setDevices]=useState<Device[]>([]),[loading,setLoading]=useState(true);
  const [person,setPerson]=useState(initialPersonId),[newName,setNewName]=useState(''),[deviceName,setDeviceName]=useState(''),[existingId,setExistingId]=useState(initialDeviceId);
  const [mode,setMode]=useState<'new'|'existing'>(initialDeviceId?'existing':'new'),[step,setStep]=useState(1),[device,setDevice]=useState<Registered|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[visible,setVisible]=useState(false),[saved,setSaved]=useState(false),[copied,setCopied]=useState(false),[commandCopied,setCommandCopied]=useState(false);
  const [since,setSince]=useState(''),[verified,setVerified]=useState(false),[checked,setChecked]=useState(false),[last,setLast]=useState<string|null>(null);
- useEffect(()=>{let active=true;Promise.all([peopleApi.list(),devicesApi.list()]).then(([p,d])=>{if(active){setPeople(p);setDevices(d);}}).catch(e=>{if(active)setError(e instanceof Error?e.message:'Unable to load people and devices.');}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[]);
+ useEffect(()=>{let active=true;Promise.all([peopleApi.list(),devicesApi.list()]).then(([p,d])=>{if(active){setPeople(p);setDevices(d);setLoaded(true);}}).catch(e=>{if(active)setError(e instanceof Error?e.message:'Unable to load people and devices.');}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[attempt]);
  async function register(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError('');try{
   let assigned=people.find(p=>p._id===person);
   if(!assigned){assigned=await peopleApi.create(newName);setPeople(p=>[...p,assigned!]);setPerson(assigned._id);}
@@ -31,9 +33,9 @@ export function Connect({ backendUrl='', initialDeviceId='', initialPersonId='' 
  <section className="connection-card" aria-label={'Step '+step+': '+stages[step-1].title}>
   <div className="connection-card-header"><span className="connection-symbol">{step===1?<Monitor size={23}/>:step===2?<KeyRound size={23}/>:<Radio size={23}/>}</span><div><small>Step {step} of 3</small><h2>{step===1?'Give this PC a place in your workspace':step===2?'Set up '+device?.name:'Confirm that usage is arriving'}</h2></div></div>
   <label className="platform-picker">Device operating system<select aria-label="Device operating system" value={platform} onChange={e=>{setPlatform(e.target.value as 'windows'|'macos'|'linux');setSaved(false);setCommandCopied(false);}}><option value="windows">Windows</option><option value="macos">macOS</option><option value="linux">Linux</option></select></label>
-  {error&&<ErrorBox error={error}/>}
+  {error&&<ErrorBox error={error} onRetry={!loaded?()=>{setError('');setLoading(true);setAttempt(n=>n+1);}:undefined}/>}
   {step===1&&<><div className="connection-mode" role="group" aria-label="Device setup mode"><button aria-pressed={mode==='new'} onClick={()=>setMode('new')}>Register a new device</button><button aria-pressed={mode==='existing'} onClick={()=>setMode('existing')}>Use an existing device</button></div>
-    {loading?<p role="status">Loading your workspace…</p>:mode==='new'?<form onSubmit={register}>
+    {loading?<LoadingState variant="form" label="Loading your workspace…"/>:!loaded?null:mode==='new'?<form onSubmit={register}>
       <div className="connection-form"><label>Assigned person<select aria-label="Assigned person" value={person} onChange={e=>setPerson(e.target.value)}><option value="">Create a new person</option>{people.map(p=><option key={p._id} value={p._id}>{p.name}</option>)}</select><small>Reports from this device will be assigned to this person.</small></label>
       {!person&&<label>Person’s name<input name="personName" value={newName} onChange={e=>setNewName(e.target.value)} required maxLength={120} placeholder="For example, Keval Patel" autoComplete="name"/></label>}
       <label>Device name<input aria-label="Device name" name="deviceName" value={deviceName} onChange={e=>setDeviceName(e.target.value)} required maxLength={120} placeholder="For example, Keval’s laptop" aria-describedby="device-name-help"/><small id="device-name-help">Any recognizable name is fine. It does not have to match the Windows PC name.</small></label></div>

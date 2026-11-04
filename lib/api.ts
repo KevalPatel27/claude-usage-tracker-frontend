@@ -14,25 +14,37 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
-
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = await res.json();
-      message = body.error ?? message;
-    } catch {}
-    throw new ApiError(res.status, message);
+  const controller = new AbortController();
+  const cancel = () => controller.abort(options.signal?.reason);
+  if (options.signal?.aborted) cancel();
+  else options.signal?.addEventListener('abort', cancel, { once: true });
+  // Allow time for a free backend to wake, but never leave the UI waiting forever.
+  const writing = !['GET', 'HEAD'].includes((options.method ?? 'GET').toUpperCase());
+  const timeout = setTimeout(() => controller.abort(new Error(writing ? 'Request timed out. Check whether your change was saved before trying again.' : 'Request timed out. The backend may be waking up. Try again.')), 90000);
+  try {
+    const headers = new Headers(options.headers);
+    if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    const res = await fetch(`${BASE}${path}`, {
+      ...options, credentials: 'include', cache: 'no-store', headers, signal: controller.signal,
+    });
+    if (!res.ok) {
+      let message = res.status === 401 ? 'Your admin session expired. Sign in again.' : `Request failed (HTTP ${res.status}). Try again.`;
+      try {
+        const body = await res.json();
+        if (typeof body.error === 'string') message = body.error;
+      } catch {}
+      throw new ApiError(res.status, message);
+    }
+    if (res.status === 204) return undefined as T;
+    return await res.json() as T;
+  } catch (error) {
+    if (controller.signal.aborted) throw controller.signal.reason;
+    if (error instanceof TypeError) throw new Error(writing ? 'Connection lost. Check whether your change was saved before trying again.' : 'Cannot reach the server. Check your connection and try again.');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', cancel);
   }
-
-  // 204 No Content
-  if (res.status === 204) return undefined as T;
-
-  return res.json() as Promise<T>;
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
