@@ -22,11 +22,11 @@ npm ci
 
 Copy `.env.example` to `.env.local` and configure:
 
-| Variable | Purpose |
-| --- | --- |
-| BACKEND_URL | Backend origin used by the server API proxy, e.g. http://127.0.0.1:4000 |
-| PUBLIC_INGESTION_URL | Backend origin used in Windows onboarding; use a reachable HTTPS address for other PCs |
-| PUBLIC_SITE_URL | Public frontend origin for share-image URLs; optional Vercel production-domain fallback |
+| Variable             | Purpose                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| BACKEND_URL          | Backend origin used by the server API proxy, e.g. http://127.0.0.1:4000                 |
+| PUBLIC_INGESTION_URL | Backend origin used in Windows onboarding; use a reachable HTTPS address for other PCs  |
+| PUBLIC_SITE_URL      | Public frontend origin for share-image URLs; optional Vercel production-domain fallback |
 
 No MongoDB credentials, JWT secrets or device keys belong in frontend environment variables. BACKEND_URL is server-only; the browser calls `/api/*` on this frontend.
 
@@ -107,3 +107,9 @@ Captured-input history is checked by default in Connect a PC; admins can uncheck
 ## Unified installer
 
 One file and one command per OS configures metrics plus input history for new and existing PCs. Updates reuse saved keys for the same backend and preserve queue/ownership/settings. All three OS installers require Python 3.8+. Windows uses `-DeviceId`; Mac/Linux use `--device-id`. Metrics-only uses `-NoHistory` / `--no-history`; removal uses `-Remove` / `--remove`. These explicit actions remove owned history hooks and pending inputs, so quit Code before running. Existing keys are never rotated or devices registered by setup. Legacy history-only downloads remain compatible but are no longer part of onboarding.
+
+## Formatting
+
+Run `npm run format` to apply Prettier, or `npm run format:check` to check it. Both repositories use the same Prettier and EditorConfig conventions.
+
+Shell installers are formatted by Prettier. For Python, install `python -m pip install -r requirements-dev.txt` and run `npm run format:python` or `npm run format:python:check`. For PowerShell, install `Install-Module PSScriptAnalyzer -RequiredVersion 1.24.0 -Scope CurrentUser` in PowerShell 7, then run `npm run format:powershell` or `npm run format:powershell:check`. Regenerate installers with `npm run generate:setup` after editing their source templates.

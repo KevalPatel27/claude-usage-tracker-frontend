@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "generate:setup": "node scripts/generate-history-setup.mjs && node scripts/generate-unified-setup.mjs && node scripts/generate-posix-setup.mjs",
-    "prebuild": "npm run generate:setup"
+    "prebuild": "npm run generate:setup",
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown",
+    "format:python": "python -m ruff format public scripts",
+    "format:python:check": "python -m ruff format --check public scripts",
+    "format:powershell": "pwsh -NoProfile -File scripts/format-powershell.ps1",
+    "format:powershell:check": "pwsh -NoProfile -File scripts/format-powershell.ps1 -Check"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -21,6 +27,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@prettier/plugin-xml": "3.4.2",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -28,6 +35,8 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
+    "prettier": "3.10.1",
+    "prettier-plugin-sh": "0.20.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

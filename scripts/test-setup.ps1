@@ -5,7 +5,7 @@ $path = Join-Path $root 'settings.json'
 $script = Join-Path $PSScriptRoot '..\public\setup-pc.ps1'
 function Assert($Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
 $initial = '{"permissions":{"allow":["Read"]},"env":{"EXISTING":"keep","OTEL_METRICS_EXPORTER":"console"}}'
-[IO.File]::WriteAllText($path,$initial)
+[IO.File]::WriteAllText($path, $initial)
 $key = 'dkey_' + ('a' * 64)
 & $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path
 $data = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
@@ -22,12 +22,12 @@ Assert ($data.env.OTEL_METRICS_EXPORTER -eq 'console') 'Prior exporter not resto
 Assert ($data.env.EXISTING -eq 'keep') 'Unrelated setting lost on removal'
 Assert (-not $data.env.PSObject.Properties['OTEL_EXPORTER_OTLP_METRICS_HEADERS']) 'Tracker key remained'
 # Corrupt settings must remain byte-for-byte unchanged.
-[IO.File]::WriteAllText($path,'{"env":broken')
+[IO.File]::WriteAllText($path, '{"env":broken')
 $failed = $false
 try { & $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path } catch { $failed = $true }
 Assert $failed 'Corrupt JSON accepted'
 Assert ((Get-Content -LiteralPath $path -Raw) -eq '{"env":broken') 'Corrupt file overwritten'
-[IO.File]::WriteAllText($path,$initial)
+[IO.File]::WriteAllText($path, $initial)
 & $script -NoHistory -BackendUrl 'http://127.0.0.1:4000' -TrackerKey $key -SettingsPath $path -WhatIf
 Assert ((Get-Content -LiteralPath $path -Raw) -eq $initial) 'WhatIf wrote settings'
 # Markdown URLs must fail clearly without changing configuration.

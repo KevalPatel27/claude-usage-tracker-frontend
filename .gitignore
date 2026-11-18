@@ -50,3 +50,4 @@ next-env.d.ts
 # Python setup test/cache output
 __pycache__/
 *.py[cod]
+.ruff_cache/

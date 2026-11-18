@@ -1,10 +1,16 @@
+import prettier from 'prettier';
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const engine=fs.readFileSync(path.join(root,'public/setup-unified.py'),'utf8').replaceAll('\r\n','\n');
-for(const [file,os,label] of [['setup-macos.sh','Darwin','macOS'],['setup-linux.sh','Linux','Linux']]){
- const source=`#!/usr/bin/env bash
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const engine = fs
+  .readFileSync(path.join(root, 'public/setup-unified.py'), 'utf8')
+  .replaceAll('\r\n', '\n');
+for (const [file, os, label] of [
+  ['setup-macos.sh', 'Darwin', 'macOS'],
+  ['setup-linux.sh', 'Linux', 'Linux'],
+]) {
+  const source = `#!/usr/bin/env bash
 # Usage ledger ${label} setup. Review before running. No sudo, shell profile edits or network calls.
 set -euo pipefail
 if [ "$(uname -s)" != "${os}" ]; then
@@ -21,6 +27,10 @@ ${engine}
 USAGE_TRACKER_PY
 )" "$@"
 `;
- fs.writeFileSync(path.join(root,'public',file),source);
+  const options = await prettier.resolveConfig(path.join(root, 'package.json'));
+  fs.writeFileSync(
+    path.join(root, 'public', file),
+    await prettier.format(source, { ...options, filepath: file }),
+  );
 }
 console.log('Generated standalone macOS and Linux unified installers.');

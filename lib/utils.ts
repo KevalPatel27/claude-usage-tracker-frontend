@@ -50,15 +50,13 @@ export function tokenTypeLabel(type: string): string {
 }
 
 export const TOKEN_TYPE_COLORS: Record<string, string> = {
-  input: '#3b82f6',         // blue-500
-  output: '#8b5cf6',        // violet-500
-  cacheRead: '#10b981',     // emerald-500
+  input: '#3b82f6', // blue-500
+  output: '#8b5cf6', // violet-500
+  cacheRead: '#10b981', // emerald-500
   cacheCreation: '#f59e0b', // amber-500
 };
 
-export function getTotalTokensByType(
-  totalsByType: Array<{ _id: string; total: number }>
-) {
+export function getTotalTokensByType(totalsByType: Array<{ _id: string; total: number }>) {
   const map: Record<string, number> = {};
   for (const t of totalsByType) map[t._id] = t.total;
   return map;

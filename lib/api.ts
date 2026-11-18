@@ -4,31 +4,48 @@
 const BASE = '/api';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
     this.name = 'ApiError';
   }
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const cancel = () => controller.abort(options.signal?.reason);
   if (options.signal?.aborted) cancel();
   else options.signal?.addEventListener('abort', cancel, { once: true });
   // Allow time for a free backend to wake, but never leave the UI waiting forever.
   const writing = !['GET', 'HEAD'].includes((options.method ?? 'GET').toUpperCase());
-  const timeout = setTimeout(() => controller.abort(new Error(writing ? 'Request timed out. Check whether your change was saved before trying again.' : 'Request timed out. The backend may be waking up. Try again.')), 90000);
+  const timeout = setTimeout(
+    () =>
+      controller.abort(
+        new Error(
+          writing
+            ? 'Request timed out. Check whether your change was saved before trying again.'
+            : 'Request timed out. The backend may be waking up. Try again.',
+        ),
+      ),
+    90000,
+  );
   try {
     const headers = new Headers(options.headers);
     if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const res = await fetch(`${BASE}${path}`, {
-      ...options, credentials: 'include', cache: 'no-store', headers, signal: controller.signal,
+      ...options,
+      credentials: 'include',
+      cache: 'no-store',
+      headers,
+      signal: controller.signal,
     });
     if (!res.ok) {
-      let message = res.status === 401 ? 'Your admin session expired. Sign in again.' : `Request failed (HTTP ${res.status}). Try again.`;
+      let message =
+        res.status === 401
+          ? 'Your admin session expired. Sign in again.'
+          : `Request failed (HTTP ${res.status}). Try again.`;
       try {
         const body = await res.json();
         if (typeof body.error === 'string') message = body.error;
@@ -36,10 +53,15 @@ export async function apiFetch<T>(
       throw new ApiError(res.status, message);
     }
     if (res.status === 204) return undefined as T;
-    return await res.json() as T;
+    return (await res.json()) as T;
   } catch (error) {
     if (controller.signal.aborted) throw controller.signal.reason;
-    if (error instanceof TypeError) throw new Error(writing ? 'Connection lost. Check whether your change was saved before trying again.' : 'Cannot reach the server. Check your connection and try again.');
+    if (error instanceof TypeError)
+      throw new Error(
+        writing
+          ? 'Connection lost. Check whether your change was saved before trying again.'
+          : 'Cannot reach the server. Check your connection and try again.',
+      );
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -64,17 +86,39 @@ export const authApi = {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface ModelPrice {
-  id: string; name: string; aliases: string[]; note?: string; overridden: boolean;
-  rates: Record<'input'|'output'|'cacheRead'|'cacheCreation',number> | null;
-  longPromptRates?: Record<'input'|'output'|'cacheRead'|'cacheCreation',number>;
+  id: string;
+  name: string;
+  aliases: string[];
+  note?: string;
+  overridden: boolean;
+  rates: Record<'input' | 'output' | 'cacheRead' | 'cacheCreation', number> | null;
+  longPromptRates?: Record<'input' | 'output' | 'cacheRead' | 'cacheCreation', number>;
 }
 export interface OverviewData {
   dataMode: string;
   period: { from: string; to: string; timezone: string };
   trendGranularity: 'hour' | 'day';
-  trend: Array<{ at: string; totalTokens: number; input: number; output: number; cacheRead: number; cacheCreation: number; estimatedCostUsd: number | null }>;
+  trend: Array<{
+    at: string;
+    totalTokens: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheCreation: number;
+    estimatedCostUsd: number | null;
+  }>;
   costByModel: Array<{ model: string; estimatedCostUsd: number | null }>;
-  pricing: { source: string | null; verifiedAt: string | null; basis: string; unpricedModels: string[]; configurationError: string | null; catalog?: ModelPrice[]; overrideSource?: string | null; overrideVerifiedAt?: string | null; overrideBasis?: string | null };
+  pricing: {
+    source: string | null;
+    verifiedAt: string | null;
+    basis: string;
+    unpricedModels: string[];
+    configurationError: string | null;
+    catalog?: ModelPrice[];
+    overrideSource?: string | null;
+    overrideVerifiedAt?: string | null;
+    overrideBasis?: string | null;
+  };
   totalsByType: Array<{ _id: string; total: number }>;
   byPerson: Array<{
     personId: string;
@@ -118,12 +162,17 @@ export const dashboardApi = {
     apiFetch<{
       verified: boolean;
       lastReportAt: string | null;
-      recentReport: { exportedAt: string; model: string; tokenType: string; deltaTokens: number } | null;
+      recentReport: {
+        exportedAt: string;
+        model: string;
+        tokenType: string;
+        deltaTokens: number;
+      } | null;
     }>(`/dashboard/verify-device/${deviceId}`),
 
   settings: () =>
     apiFetch<{ reportingTimezone: string; dataRetentionDays: number; version: string }>(
-      '/dashboard/settings'
+      '/dashboard/settings',
     ),
 };
 
@@ -141,7 +190,8 @@ export interface Person {
 }
 
 export const peopleApi = {
-  list: (includeArchived = false) => apiFetch<Person[]>(`/people?includeArchived=${includeArchived}`),
+  list: (includeArchived = false) =>
+    apiFetch<Person[]>(`/people?includeArchived=${includeArchived}`),
   create: (name: string) =>
     apiFetch<Person>('/people', { method: 'POST', body: JSON.stringify({ name }) }),
   rename: (id: string, name: string) =>
@@ -152,7 +202,10 @@ export const peopleApi = {
     if (to) params.set('to', to);
     return apiFetch<{
       person: Person;
-      records: Array<{ _id: { usageModel: string; tokenType: string; deviceId: string }; totalTokens: number }>;
+      records: Array<{
+        _id: { usageModel: string; tokenType: string; deviceId: string };
+        totalTokens: number;
+      }>;
     }>(`/people/${id}/usage?${params}`);
   },
   exportCsv: (id: string, from?: string, to?: string) => {
@@ -177,11 +230,16 @@ export interface Device {
   notes?: string;
   archivedAt?: string | null;
   deleteReason?: string | null;
-  assignments?: Array<{ personId: string | { _id: string; name: string }; assignedAt: string; revokedAt?: string }>;
+  assignments?: Array<{
+    personId: string | { _id: string; name: string };
+    assignedAt: string;
+    revokedAt?: string;
+  }>;
 }
 
 export const devicesApi = {
-  list: (includeArchived = false) => apiFetch<Device[]>(`/devices?includeArchived=${includeArchived}`),
+  list: (includeArchived = false) =>
+    apiFetch<Device[]>(`/devices?includeArchived=${includeArchived}`),
 
   get: (id: string) => apiFetch<Device>(`/devices/${id}`),
 
@@ -208,8 +266,7 @@ export const devicesApi = {
       method: 'POST',
     }),
 
-  revoke: (id: string) =>
-    apiFetch(`/devices/${id}/revoke`, { method: 'POST' }),
+  revoke: (id: string) => apiFetch(`/devices/${id}/revoke`, { method: 'POST' }),
 
   usage: (id: string, from?: string, to?: string) => {
     const params = new URLSearchParams();

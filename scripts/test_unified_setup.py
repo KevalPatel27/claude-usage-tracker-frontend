@@ -1,4 +1,5 @@
 """Disposable synthetic configuration only. Never reads real Claude user settings."""
+
 import importlib.util
 import json
 from pathlib import Path
@@ -23,7 +24,11 @@ class UnifiedTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / ".local")
         self.root = Path(self.temp.name)
         self.path = self.root / "settings.json"
-        self.original = {"env": {"KEEP": "yes", "OTEL_METRICS_EXPORTER": "console"}, "statusLine": {"command": "keep-status"}, "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "keep-hook"}]}]}}
+        self.original = {
+            "env": {"KEEP": "yes", "OTEL_METRICS_EXPORTER": "console"},
+            "statusLine": {"command": "keep-status"},
+            "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "keep-hook"}]}]},
+        }
         self.path.write_text(json.dumps(self.original), encoding="utf-8")
         self.home = self.root / "usage-ledger-history"
 
@@ -37,7 +42,9 @@ class UnifiedTests(unittest.TestCase):
         self.install(key=KEY)
         value = json.loads(self.path.read_text())
         self.assertEqual(value["env"]["OTEL_EXPORTER_OTLP_METRICS_HEADERS"], "X-Tracker-Key=" + KEY)
-        self.assertEqual(value["env"]["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"], "cumulative")
+        self.assertEqual(
+            value["env"]["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"], "cumulative"
+        )
         self.assertEqual(value["env"]["KEEP"], "yes")
         self.assertEqual(value["statusLine"], self.original["statusLine"])
         self.assertEqual(len(value["hooks"]["Stop"]), 2)
@@ -51,7 +58,9 @@ class UnifiedTests(unittest.TestCase):
         self.install(key=KEY)
         queued = self.home / "queue/synthetic.json"
         queued.write_text('{"synthetic":"pending"}')
-        with patch.object(setup.getpass, "getpass", side_effect=AssertionError("Must not ask for key")):
+        with patch.object(
+            setup.getpass, "getpass", side_effect=AssertionError("Must not ask for key")
+        ):
             self.install()
         value = json.loads(self.path.read_text())
         self.assertEqual(len(value["hooks"]["UserPromptSubmit"]), 1)
@@ -76,7 +85,7 @@ class UnifiedTests(unittest.TestCase):
 
     def test_metrics_only_removes_owned_history_and_queue_but_keeps_metrics(self):
         self.install(key=KEY)
-        (self.home / "queue/synthetic.json").write_text('{}')
+        (self.home / "queue/synthetic.json").write_text("{}")
         self.install(include_history=False)
         value = json.loads(self.path.read_text())
         self.assertEqual(value["hooks"], self.original["hooks"])
@@ -115,16 +124,24 @@ class UnifiedTests(unittest.TestCase):
 
     def test_write_failure_restores_metrics_history_and_config(self):
         self.install(key=KEY)
-        files = [self.path, Path(str(self.path) + ".usage-tracker-state.json"), Path(str(self.path) + ".usage-ledger-history-state.json"), self.home / "config.json", self.home / "history-client.py"]
+        files = [
+            self.path,
+            Path(str(self.path) + ".usage-tracker-state.json"),
+            Path(str(self.path) + ".usage-ledger-history-state.json"),
+            self.home / "config.json",
+            self.home / "history-client.py",
+        ]
         original = {p: p.read_bytes() for p in files}
         write = setup.metrics.private_write
         failed = False
+
         def fail_once(path, raw):
             nonlocal failed
             if path == self.path and not failed:
                 failed = True
                 raise OSError("Synthetic disk failure")
             return write(path, raw)
+
         with patch.object(setup.metrics, "private_write", side_effect=fail_once):
             with self.assertRaises(setup.SetupError):
                 self.install(key="dkey_" + "b" * 64)
@@ -142,7 +159,9 @@ class UnifiedTests(unittest.TestCase):
         value["env"]["OTEL_METRICS_EXPORTER"] = "prometheus"
         self.path.write_text(json.dumps(value))
         setup.configure(self.path, remove=True)
-        self.assertEqual(json.loads(self.path.read_text())["env"]["OTEL_METRICS_EXPORTER"], "prometheus")
+        self.assertEqual(
+            json.loads(self.path.read_text())["env"]["OTEL_METRICS_EXPORTER"], "prometheus"
+        )
 
 
 if __name__ == "__main__":

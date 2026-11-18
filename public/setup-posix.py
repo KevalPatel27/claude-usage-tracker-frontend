@@ -2,6 +2,7 @@
 """Usage ledger settings installer. Python 3.8+, standard library only, no network calls.
 Configures existing local Claude Code; does not install Claude, agents or shell profiles.
 """
+
 import argparse
 import contextlib
 import getpass
@@ -18,10 +19,15 @@ import uuid
 import warnings
 
 OWNED = {
-    "CLAUDE_CODE_ENABLE_TELEMETRY", "OTEL_METRICS_EXPORTER", "OTEL_LOGS_EXPORTER",
-    "OTEL_TRACES_EXPORTER", "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL",
-    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
-    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", "OTEL_METRIC_EXPORT_INTERVAL",
+    "CLAUDE_CODE_ENABLE_TELEMETRY",
+    "OTEL_METRICS_EXPORTER",
+    "OTEL_LOGS_EXPORTER",
+    "OTEL_TRACES_EXPORTER",
+    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL",
+    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE",
+    "OTEL_METRIC_EXPORT_INTERVAL",
     "OTEL_METRICS_INCLUDE_SESSION_ID",
 }
 
@@ -44,27 +50,39 @@ def origin(value):
             except ValueError:
                 pass
         port = url.port
-        if (not host or (url.scheme != "https" and not (url.scheme == "http" and loopback))
-                or url.username is not None or url.password is not None or url.query
-                or url.fragment or url.path not in ("", "/") or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in value)
-                or (port is not None and not 1 <= port <= 65535)):
+        if (
+            not host
+            or (url.scheme != "https" and not (url.scheme == "http" and loopback))
+            or url.username is not None
+            or url.password is not None
+            or url.query
+            or url.fragment
+            or url.path not in ("", "/")
+            or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in value)
+            or (port is not None and not 1 <= port <= 65535)
+        ):
             raise ValueError()
         return value.rstrip("/")
     except (ValueError, AttributeError):
-        raise SetupError("Use a plain HTTPS backend origin without path, credentials, query or Markdown. HTTP is allowed only for loopback development.") from None
+        raise SetupError(
+            "Use a plain HTTPS backend origin without path, credentials, query or Markdown. HTTP is allowed only for loopback development."
+        ) from None
 
 
 def installed_settings(backend, key):
     if not isinstance(key, str) or not re.fullmatch(r"dkey_[a-f0-9]{64}", key):
         raise SetupError("Invalid device key format. No settings changed.")
     return {
-        "CLAUDE_CODE_ENABLE_TELEMETRY": "1", "OTEL_METRICS_EXPORTER": "otlp",
-        "OTEL_LOGS_EXPORTER": "none", "OTEL_TRACES_EXPORTER": "none",
+        "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+        "OTEL_METRICS_EXPORTER": "otlp",
+        "OTEL_LOGS_EXPORTER": "none",
+        "OTEL_TRACES_EXPORTER": "none",
         "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": "http/json",
         "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": backend + "/v1/metrics",
         "OTEL_EXPORTER_OTLP_METRICS_HEADERS": "X-Tracker-Key=" + key,
         "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": "cumulative",
-        "OTEL_METRIC_EXPORT_INTERVAL": "60000", "OTEL_METRICS_INCLUDE_SESSION_ID": "true",
+        "OTEL_METRIC_EXPORT_INTERVAL": "60000",
+        "OTEL_METRICS_INCLUDE_SESSION_ID": "true",
     }
 
 
@@ -72,24 +90,33 @@ def no_duplicates(pairs):
     result = {}
     for key, value in pairs:
         if key in result:
-            raise SetupError("JSON contains duplicate keys. Repair it before running setup; no settings changed.")
+            raise SetupError(
+                "JSON contains duplicate keys. Repair it before running setup; no settings changed."
+            )
         result[key] = value
     return result
 
 
 def read_map(path):
     if path.is_symlink():
-        raise SetupError("Refusing a symlink settings/state file. Review it and pass the real file using --settings-path.")
+        raise SetupError(
+            "Refusing a symlink settings/state file. Review it and pass the real file using --settings-path."
+        )
     if not path.exists():
         return {}, None
     if not path.is_file():
         raise SetupError("Settings/state path must be a regular file. No settings changed.")
     raw = path.read_bytes()
     try:
-        value = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=no_duplicates,
-                           parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        value = json.loads(
+            raw.decode("utf-8-sig"),
+            object_pairs_hook=no_duplicates,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
     except (ValueError, UnicodeError):
-        raise SetupError("Malformed JSON settings/state file. No settings changed; repair the JSON first.") from None
+        raise SetupError(
+            "Malformed JSON settings/state file. No settings changed; repair the JSON first."
+        ) from None
     if not isinstance(value, dict):
         raise SetupError("Settings/state must contain a JSON object. No settings changed.")
     return value, raw
@@ -98,13 +125,21 @@ def read_map(path):
 def validate_state(state):
     if not state:
         return
-    if (not isinstance(state.get("installed"), dict) or not isinstance(state.get("previous"), dict)
-            or not isinstance(state.get("hadEnv"), bool) or not set(state["installed"]).issubset(OWNED)):
+    if (
+        not isinstance(state.get("installed"), dict)
+        or not isinstance(state.get("previous"), dict)
+        or not isinstance(state.get("hadEnv"), bool)
+        or not set(state["installed"]).issubset(OWNED)
+    ):
         raise SetupError("Invalid tracker ownership state. No settings changed.")
     for key, value in state["installed"].items():
         previous = state["previous"].get(key)
-        if (not isinstance(value, str) or not isinstance(previous, dict)
-                or not isinstance(previous.get("existed"), bool) or "value" not in previous):
+        if (
+            not isinstance(value, str)
+            or not isinstance(previous, dict)
+            or not isinstance(previous.get("existed"), bool)
+            or "value" not in previous
+        ):
             raise SetupError("Invalid tracker ownership state. No settings changed.")
 
 
@@ -132,7 +167,9 @@ def setup_lock(path):
     try:
         fd = os.open(str(lock), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
-        raise SetupError("Another setup may be running. If a prior run was interrupted, review and remove only its .usage-tracker.lock file before retrying.") from None
+        raise SetupError(
+            "Another setup may be running. If a prior run was interrupted, review and remove only its .usage-tracker.lock file before retrying."
+        ) from None
     try:
         os.close(fd)
         yield
@@ -149,14 +186,24 @@ def configure(path, backend=None, key=None, remove=False, dry_run=False):
     if "env" in settings and not isinstance(settings["env"], dict):
         raise SetupError("Existing env must be a JSON object. No settings changed.")
     validate_state(state)
-    installed = None if remove else installed_settings(origin(backend), key) if not dry_run else None
+    installed = (
+        None if remove else installed_settings(origin(backend), key) if not dry_run else None
+    )
     if not remove:
         origin(backend)
     if remove and not state:
         print("No tracker ownership record. Nothing changed.")
         return
     if dry_run:
-        print("Would " + ("restore tracker-owned settings in " if remove else "back up and merge metrics settings in ") + str(path))
+        print(
+            "Would "
+            + (
+                "restore tracker-owned settings in "
+                if remove
+                else "back up and merge metrics settings in "
+            )
+            + str(path)
+        )
         print("Dry run: no files changed and no key requested.")
         return
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -205,32 +252,60 @@ def configure(path, backend=None, key=None, remove=False, dry_run=False):
             private_write(state_path, json_bytes(state))
             private_write(path, json_bytes(settings))
     print("Tracker-owned settings restored." if remove else "Metrics settings saved: " + str(path))
-    print("Settings and private ownership/backups can contain device keys. Keep them private; backups remain after removal.")
-    print("Exit existing Claude Code sessions. On macOS fully quit Desktop with Cmd+Q; on Linux quit Desktop if installed, then reopen it.")
-    print("Start a NEW local Code session (or terminal claude), send a short prompt, wait at least 60 seconds, and use dashboard Verify.")
-    print("Health alone does not prove telemetry. Managed/launcher environment can override user settings. Remote/cloud sessions are not configured.")
+    print(
+        "Settings and private ownership/backups can contain device keys. Keep them private; backups remain after removal."
+    )
+    print(
+        "Exit existing Claude Code sessions. On macOS fully quit Desktop with Cmd+Q; on Linux quit Desktop if installed, then reopen it."
+    )
+    print(
+        "Start a NEW local Code session (or terminal claude), send a short prompt, wait at least 60 seconds, and use dashboard Verify."
+    )
+    print(
+        "Health alone does not prove telemetry. Managed/launcher environment can override user settings. Remote/cloud sessions are not configured."
+    )
     if not remove:
-        print("Updating an existing PC? Keep the same registered device and key. This script does not create a device or rotate its key.")
-        print("If your admin enabled input history, also run the latest setup-history.py using that same device ID. Metrics setup alone does not enable input history.")
+        print(
+            "Updating an existing PC? Keep the same registered device and key. This script does not create a device or rotate its key."
+        )
+        print(
+            "If your admin enabled input history, also run the latest setup-history.py using that same device ID. Metrics setup alone does not enable input history."
+        )
     if remove:
         print("Revoke the device key in People & devices to stop reporting authorization.")
 
 
 class SafeParser(argparse.ArgumentParser):
     def error(self, message):
-        raise SetupError("Invalid options. Use --help; enter the key only at the hidden prompt or via managed --key-stdin input.")
+        raise SetupError(
+            "Invalid options. Use --help; enter the key only at the hidden prompt or via managed --key-stdin input."
+        )
 
 
 def main():
-    parser = SafeParser(description="Configure Usage ledger metrics for local macOS/Linux Claude Code. No sudo or network calls.")
+    parser = SafeParser(
+        description="Configure Usage ledger metrics for local macOS/Linux Claude Code. No sudo or network calls."
+    )
     parser.add_argument("--backend-url")
     parser.add_argument("--remove", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--settings-path", default=str(Path((os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home() / ".claude"))) / "settings.json"))
-    parser.add_argument("--key-stdin", action="store_true", help="Managed automation only: read key from standard input instead of hidden terminal prompt")
+    parser.add_argument(
+        "--settings-path",
+        default=str(
+            Path((os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home() / ".claude")))
+            / "settings.json"
+        ),
+    )
+    parser.add_argument(
+        "--key-stdin",
+        action="store_true",
+        help="Managed automation only: read key from standard input instead of hidden terminal prompt",
+    )
     args = parser.parse_args()
     if os.name == "posix" and os.geteuid() == 0:
-        raise SetupError("Run as your normal Claude Code user without sudo; root would configure the wrong profile.")
+        raise SetupError(
+            "Run as your normal Claude Code user without sudo; root would configure the wrong profile."
+        )
     key = None
     if not args.remove:
         origin(args.backend_url)
@@ -239,13 +314,17 @@ def main():
                 key = sys.stdin.readline().rstrip("\r\n")
             else:
                 if not sys.stdin.isatty():
-                    raise SetupError("Run from an interactive terminal for a hidden key prompt. Managed automation may use --key-stdin.")
+                    raise SetupError(
+                        "Run from an interactive terminal for a hidden key prompt. Managed automation may use --key-stdin."
+                    )
                 try:
                     with warnings.catch_warnings():
                         warnings.simplefilter("error", getpass.GetPassWarning)
                         key = getpass.getpass("Device tracker key (hidden): ")
                 except getpass.GetPassWarning:
-                    raise SetupError("This terminal cannot hide key input. Use a normal interactive Terminal; no key was read or saved.") from None
+                    raise SetupError(
+                        "This terminal cannot hide key input. Use a normal interactive Terminal; no key was read or saved."
+                    ) from None
     configure(args.settings_path, args.backend_url, key, args.remove, args.dry_run)
 
 
@@ -256,5 +335,8 @@ if __name__ == "__main__":
         print("Setup failed: " + str(error), file=sys.stderr)
         sys.exit(1)
     except (OSError, KeyboardInterrupt, EOFError):
-        print("Setup could not complete. Check file permissions and terminal input; no credentials were printed. Review private backups before retrying.", file=sys.stderr)
+        print(
+            "Setup could not complete. Check file permissions and terminal input; no credentials were printed. Review private backups before retrying.",
+            file=sys.stderr,
+        )
         sys.exit(1)

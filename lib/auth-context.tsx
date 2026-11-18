@@ -38,7 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, logout, refresh: async () => { await authApi.me(); setIsAuthenticated(true); } }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isLoading,
+        logout,
+        refresh: async () => {
+          await authApi.me();
+          setIsAuthenticated(true);
+        },
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -20,14 +20,14 @@ Then add comparisons and cache insight from the existing records: current versus
 
 Recommended collection order:
 
-| Priority | Product outcome | Required work and limits |
-| --- | --- | --- |
-| 1 | Session labels, notes and project views | Manual metadata plus existing usage; no exporter change needed |
-| 2 | Project attribution | Explicit approved project identifiers; optional repository metadata; do not expose private remote URLs unnecessarily |
-| 3 | Activity and adoption | New typed metric collection and durable accounting; distinguish observed CLI activity from employee working time or productivity |
-| 4 | Reliability diagnostics | Device/client version, last successful receipt, stale reports and collection gaps; receipt silence is not proof that a person was idle |
-| 5 | Request latency and failure summaries | Separate authenticated OTLP logs parser, strict field allowlist, event identity/deduplication, bounded retention and opt-in rollout; exclude prompt/response/tool bodies |
-| 6 | Administration at company scale | Viewer/admin roles, audit trail for assignment/key/deletion actions, estimated-cost thresholds and daily summaries; configure recipients before enabling delivery |
+| Priority | Product outcome                         | Required work and limits                                                                                                                                                 |
+| -------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1        | Session labels, notes and project views | Manual metadata plus existing usage; no exporter change needed                                                                                                           |
+| 2        | Project attribution                     | Explicit approved project identifiers; optional repository metadata; do not expose private remote URLs unnecessarily                                                     |
+| 3        | Activity and adoption                   | New typed metric collection and durable accounting; distinguish observed CLI activity from employee working time or productivity                                         |
+| 4        | Reliability diagnostics                 | Device/client version, last successful receipt, stale reports and collection gaps; receipt silence is not proof that a person was idle                                   |
+| 5        | Request latency and failure summaries   | Separate authenticated OTLP logs parser, strict field allowlist, event identity/deduplication, bounded retention and opt-in rollout; exclude prompt/response/tool bodies |
+| 6        | Administration at company scale         | Viewer/admin roles, audit trail for assignment/key/deletion actions, estimated-cost thresholds and daily summaries; configure recipients before enabling delivery        |
 
 The current receiver **stores token usage only** and setup intentionally disables logs/traces. These proposals do not silently enable more collection. Metric expansion needs its own schema and unit handling: seconds/cost can be fractional, so do not reuse integer token fields. Extend durable checkpoints with metric identity and units, then test cumulative/delta semantics, resets, retries, concurrency and restart recovery before rollout. Do not count request-event tokens a second time alongside token metrics. New dimensions can change stream identity; plan rollout so an export cannot replay prior cumulative usage as a fresh stream.
 

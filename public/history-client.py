@@ -2,6 +2,7 @@
 """Usage ledger 2.0.0: allowlisted input hooks, bounded private queue, no transcripts.
 Invoked asynchronously by Claude Code. It never prints hook content or adds model context.
 """
+
 import contextlib
 import datetime
 import hashlib
@@ -74,8 +75,14 @@ def issue(root, code, dropped=0):
         if not owned:
             return
         old = read_private(root / "diagnostics.json", {})
-        write_private(root / "diagnostics.json", {"lastIssue": code, "at": time.time(),
-            "droppedCount": min(9007199254740991, old.get("droppedCount", 0) + dropped)})
+        write_private(
+            root / "diagnostics.json",
+            {
+                "lastIssue": code,
+                "at": time.time(),
+                "droppedCount": min(9007199254740991, old.get("droppedCount", 0) + dropped),
+            },
+        )
 
 
 def queue_files(root):
@@ -91,12 +98,23 @@ def capture(root, mode, data, now=None):
     if data.get("hook_event_name") != event_name:
         return False
     session, prompt = data.get("session_id"), data.get("prompt_id")
-    if not isinstance(session, str) or not ID.fullmatch(session) or not isinstance(prompt, str) or not ID.fullmatch(prompt):
+    if (
+        not isinstance(session, str)
+        or not ID.fullmatch(session)
+        or not isinstance(prompt, str)
+        or not ID.fullmatch(prompt)
+    ):
         issue(root, "missing-correlation-id", 1)
         return False
     # Build fresh data: never forward assistant text, cwd, transcript paths or raw hook input.
-    event = {"type": mode, "sessionId": session, "promptId": prompt,
-        "observedAt": datetime.datetime.fromtimestamp(now, datetime.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")}
+    event = {
+        "type": mode,
+        "sessionId": session,
+        "promptId": prompt,
+        "observedAt": datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z"),
+    }
     if mode == "submit":
         text = data.get("prompt")
         if not isinstance(text, str):
@@ -113,7 +131,10 @@ def capture(root, mode, data, now=None):
         if not owned:
             issue(root, "capture-busy", 1)
             return False
-        if mode == "submit" and ((root / "seen" / (identity + ".json")).exists() or (root / "queue" / (identity + ".json")).exists()):
+        if mode == "submit" and (
+            (root / "seen" / (identity + ".json")).exists()
+            or (root / "queue" / (identity + ".json")).exists()
+        ):
             return False
         files = queue_files(root)
         sizes = []
@@ -122,7 +143,10 @@ def capture(root, mode, data, now=None):
                 sizes.append(path.stat().st_size)
             except FileNotFoundError:
                 pass  # A concurrent successful flush already removed this record.
-        if len(files) >= MAX_EVENTS or sum(sizes) + len(json.dumps(event, ensure_ascii=False).encode("utf-8")) > MAX_BYTES:
+        if (
+            len(files) >= MAX_EVENTS
+            or sum(sizes) + len(json.dumps(event, ensure_ascii=False).encode("utf-8")) > MAX_BYTES
+        ):
             issue(root, "queue-full", 1)
             return False
         filename = identity if mode == "submit" else uuid.uuid4().hex
@@ -136,8 +160,12 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def post(origin, key, payload):
-    request = urllib.request.Request(origin + "/v1/history", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json", "X-Tracker-Key": key}, method="POST")
+    request = urllib.request.Request(
+        origin + "/v1/history",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "X-Tracker-Key": key},
+        method="POST",
+    )
     try:
         with urllib.request.build_opener(NoRedirect()).open(request, timeout=4) as response:
             body = json.loads(response.read(16000))
@@ -155,7 +183,9 @@ def flush(root, sender=post, now=None, budget=8):
         return
     origin = config["backendUrl"]
     url = urlsplit(origin)
-    if url.scheme != "https" and not (url.scheme == "http" and url.hostname in ["localhost", "127.0.0.1", "::1"]):
+    if url.scheme != "https" and not (
+        url.scheme == "http" and url.hostname in ["localhost", "127.0.0.1", "::1"]
+    ):
         return
     with lock(root / "flush.lock") as owned:
         if not owned:
@@ -167,7 +197,12 @@ def flush(root, sender=post, now=None, budget=8):
             for path in queue_files(root):
                 try:
                     event = read_private(path)
-                    age = now - datetime.datetime.fromisoformat(event["observedAt"].replace("Z", "+00:00")).timestamp()
+                    age = (
+                        now
+                        - datetime.datetime.fromisoformat(
+                            event["observedAt"].replace("Z", "+00:00")
+                        ).timestamp()
+                    )
                     if age > MAX_AGE:
                         path.unlink()
                         issue(root, "queue-expired", 1)
@@ -181,12 +216,28 @@ def flush(root, sender=post, now=None, budget=8):
             if not selected:
                 break
             state = read_private(root / "diagnostics.json", {})
-            payload = {"version": 2, "deviceId": config["deviceId"], "diagnostics": {"setupVersion": VERSION,
-                "platform": "windows" if os.name == "nt" else "macos" if sys.platform == "darwin" else "linux",
-                "pendingCount": min(MAX_EVENTS, max(0, len(queue_files(root)) - len(selected))), "droppedCount": state.get("droppedCount", 0)},
-                "events": [event for _, event in selected]}
+            payload = {
+                "version": 2,
+                "deviceId": config["deviceId"],
+                "diagnostics": {
+                    "setupVersion": VERSION,
+                    "platform": "windows"
+                    if os.name == "nt"
+                    else "macos"
+                    if sys.platform == "darwin"
+                    else "linux",
+                    "pendingCount": min(MAX_EVENTS, max(0, len(queue_files(root)) - len(selected))),
+                    "droppedCount": state.get("droppedCount", 0),
+                },
+                "events": [event for _, event in selected],
+            }
             code, body = sender(origin, config["key"], payload)
-            if code == 200 and isinstance(body, dict) and type(body.get("accepted")) is int and 0 <= body["accepted"] <= len(selected):
+            if (
+                code == 200
+                and isinstance(body, dict)
+                and type(body.get("accepted")) is int
+                and 0 <= body["accepted"] <= len(selected)
+            ):
                 for path, event in selected:
                     if event["type"] == "submit":
                         write_private(root / "seen" / path.name, {"at": now})
@@ -219,9 +270,17 @@ def main():
         return
     mode = sys.argv[1] if len(sys.argv) > 1 else "status"
     if mode == "status":
-        print(json.dumps({"setupVersion": VERSION, "configured": (root / "config.json").is_file(),
-            "paused": (root / "paused.json").exists(), "pending": len(queue_files(root)),
-            "diagnostics": read_private(root / "diagnostics.json", {})}))
+        print(
+            json.dumps(
+                {
+                    "setupVersion": VERSION,
+                    "configured": (root / "config.json").is_file(),
+                    "paused": (root / "paused.json").exists(),
+                    "pending": len(queue_files(root)),
+                    "diagnostics": read_private(root / "diagnostics.json", {}),
+                }
+            )
+        )
         return
     if mode in ["submit", "stop"]:
         raw = sys.stdin.buffer.read(2 * 1024 * 1024 + 1)
