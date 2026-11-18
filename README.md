@@ -113,3 +113,9 @@ One file and one command per OS configures metrics plus input history for new an
 Run `npm run format` to apply Prettier, or `npm run format:check` to check it. Both repositories use the same Prettier and EditorConfig conventions.
 
 Shell installers are formatted by Prettier. For Python, install `python -m pip install -r requirements-dev.txt` and run `npm run format:python` or `npm run format:python:check`. For PowerShell, install `Install-Module PSScriptAnalyzer -RequiredVersion 1.24.0 -Scope CurrentUser` in PowerShell 7, then run `npm run format:powershell` or `npm run format:powershell:check`. Regenerate installers with `npm run generate:setup` after editing their source templates.
+
+## Client IP forwarding
+
+Set `CLIENT_IP_PROXY_SECRET` to the same random server-only value of at least 32 characters on both deployments. The frontend signs the platform-provided client address, request method and path with a timestamp. The backend verifies this proof before using that client address for rate limits. Vercel supplies `x-vercel-forwarded-for`; Hostinger CDN supplies `x-real-ip` or the last `x-forwarded-for` entry. Keep the frontend behind its hosting platform's proxy so these headers reflect the visitor.
+
+Authentication requests from verified clients `103.250.144.203` and `2402:a00:408:4126:ac01:ad35:7114:f8d` are exempt from authentication throttling. Other clients retain individual rate limits. Forwarding proof expires after 60 seconds. Ordinary password verification still applies. Both deployments need the shared secret and the new code before client attribution takes effect.
